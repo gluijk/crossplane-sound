@@ -11,42 +11,45 @@ library(tuneR)
 time2sample=function(t, fs=24000) {(round(t*fs+1))}
 sample2time=function(n, fs=24000) {((n-1)/fs)}
 
+# Stroke pulse model
 explode=function(t, A=1, t0=0, tmax=0.01, f=100, phi=0)
-{A*(t-t0)/tmax*exp(1-(t-t0)/tmax)*sin(2*pi*f*(t-t0)+phi)}
+    {A*(t-t0)/tmax*exp(1-(t-t0)/tmax)*sin(2*pi*f*(t-t0)+phi)}
 explode.env=function(t, A=1, t0=0, tmax=0.01)
-{A*(t-t0)/tmax*exp(1-(t-t0)/tmax)}
+    {A*(t-t0)/tmax*exp(1-(t-t0)/tmax)}
 
 
+# ENGINE PARAMS
+rpm=1000
+strokepm=2*rpm
+expps=strokepm/60
+Tstroke=1/expps  # stroke period (0.03s)
+f=167.364757  # pulse fundamental frequency (Hz)
+
+
+# SINGLE STROKE
+time=4*0.03  # allow stroke pulse to fade through 0.12s
+t=seq(0, time, length.out=time2sample(time))  # t are seconds
+stroke=explode(t, f=f)
+stroke.env=explode.env(t)
+strokelen=length(stroke)
+
+# Draw single stroke pulse
+plot(t, stroke, type='l', ylim=c(-1,1), xlab='t(s)', ylab='')
+lines(t, stroke.env, lty='dotted', col='red')
+lines(t,-stroke.env, lty='dotted', col='red')
+abline(h=0)
+
+
+# BUILD ENGINE SOUND
+N=130*4  # total number of strokes (multiple of 4)
+time=N*Tstroke+sample2time(strokelen)
 freqs=24000
 JITTER=2  # 0
 ACCEL=1.0005  # 1
+
 for (motor in c('flatplane', 'crossplane')) {
-    # ENGINE PARAMS
-    rpm=1000
-    strokepm=2*rpm
-    expps=strokepm/60
-    Tstroke=1/expps  # stroke period (0.03s)
-    f=167.364757
-    
-    
-    # SINGLE STROKE
-    time=4*0.03  # allow stroke pulse to fade through 0.12s
-    t=seq(0, time, length.out=time2sample(time))  # t are seconds
-    stroke=explode(t, f=f)
-    stroke.env=explode.env(t)
-    
-    # Draw single stroke pulse
-    plot(t, stroke, type='l', ylim=c(-1,1), xlab='t(s)', ylab='')
-    lines(t, stroke.env, lty='dotted', col='red')
-    lines(t,-stroke.env, lty='dotted', col='red')
-    abline(h=0)
-    
-    
-    # BUILD ENGINE SOUND
-    N=130*4  # total number of strokes (multiple of 4)
-    time=N*Tstroke+sample2time(length(stroke))
-    engine=seq(0, 0, length.out=time2sample(time))
-    strokelen=length(stroke)
+    Tstroke=1/expps  # reset to starting Tstroke
+    engine=seq(0, 0, length.out=time2sample(time)) 
     
     initisample=1
     for (i in 1:N) {
@@ -57,8 +60,8 @@ for (motor in c('flatplane', 'crossplane')) {
             # Crossplane delays 2nd and 3rd strokes by Tstroke/2
             rango=rango+time2sample(Tstroke/2)
         }
-        engine[rango]=engine[rango]+stroke
-        initisample=initisample+time2sample(Tstroke)
+        engine[rango]=engine[rango]+stroke  # add stroke to waveform
+        initisample=initisample+time2sample(Tstroke)  # shift to next stroke
         
         # Modulate rpm
         if (i<=4*N/5) {
@@ -67,17 +70,18 @@ for (motor in c('flatplane', 'crossplane')) {
             Tstroke=Tstroke*ACCEL^15  # quick slow down
         }
     }
-    print(paste0("Min/Max values: ", min(engine), "/", max(engine)))
+    print(paste0(motor, " engine Min/Max values: ",
+                 min(engine), "/", max(engine)))
     engine=engine/max(abs(min(engine)), max(engine))  # normalize to -1/1
     
     
-    # SAVE WAV
+    # SAVE .WAV
     sound=readWave("sawtooth_bandlimited.wav")
     fs=as.numeric(sound@samp.rate)
     fs=48000
     bits=16
     
-    sound@left=engine*(2^(bits-1)-1)  # normalize to 16 bits
+    sound@left=round(engine*(2^(bits-1)-1))  # normalize to 16-bit integer
     sound@samp.rate=fs
     sound@bit=bits
     writeWave(sound, filename=paste0("engine_", motor, "_",rpm,".wav"))
@@ -87,29 +91,28 @@ for (motor in c('flatplane', 'crossplane')) {
     waveform=sound@left
     
     dft=abs(fft(waveform))
-    N=round(length(dft)/2)  # first half of FFT
+    NFFT=round(length(dft)/2)  # first half of FFT
     maxfreq=freqs/2/1000  # FFT max freq in kHz
-    plot(seq(from=0, to=maxfreq, len=N),
-         dft[1:N]/max(dft), main='Motor',
+    plot(seq(from=0, to=maxfreq, len=NFFT),
+         dft[1:NFFT]/max(dft), main='Motor',
          xlab='f (kHz)', ylab='Amplitude', col='red', type='l')
     axis(side=1, at=c(0:maxfreq))
     
     png(width=512, height=400, paste0("engine_", motor, "_",rpm,".png"))
     CROP=30
-    plot(seq(from=0, to=maxfreq/CROP, len=round(N/CROP)),
-         dft[1:round(N/CROP)]/max(dft),
+    plot(seq(from=0, to=maxfreq/CROP, len=round(NFFT/CROP)),
+         dft[1:round(NFFT/CROP)]/max(dft),
          main=paste0(motor, " engine at ",rpm," rpm"),
          xlab='f (kHz)', ylab='Amplitude', col='red', type='l')
     abline(v=f/1000, col='lightgray', lty='dotted')
     dev.off()
-
 }
 
 
 
 # MAKE VIDEO
 
-# SAVE WAV
+# SAVE .WAV
 sound=readWave("engine_flatplane_1000.wav")
 fs=as.numeric(sound@samp.rate)
 length(sound@left)/fs  # duration
