@@ -18,20 +18,19 @@ explode.env=function(t, A=1, t0=0, tmax=0.01)
 
 
 freqs=24000
-FACTOR=1
 JITTER=2  # 0
 ACCEL=1.0005  # 1
 for (motor in c('flatplane', 'crossplane')) {
     # ENGINE PARAMS
-    rpm=1000*FACTOR
+    rpm=1000
     strokepm=2*rpm
     expps=strokepm/60
     Tstroke=1/expps  # stroke period (0.03s)
-    f=167.364757*FACTOR
+    f=167.364757
     
     
     # SINGLE STROKE
-    time=4*0.03  # allow pulse through 0.12s
+    time=4*0.03  # allow stroke pulse to fade through 0.12s
     t=seq(0, time, length.out=time2sample(time))  # t are seconds
     stroke=explode(t, f=f)
     stroke.env=explode.env(t)
@@ -44,27 +43,27 @@ for (motor in c('flatplane', 'crossplane')) {
     
     
     # BUILD ENGINE SOUND
-    N=520  # total number of strokes
+    N=130*4  # total number of strokes (multiple of 4)
     time=N*Tstroke+sample2time(length(stroke))
     engine=seq(0, 0, length.out=time2sample(time))
     strokelen=length(stroke)
+    
     initisample=1
     for (i in 1:N) {
         stroke=explode(t, f=f+rnorm(1)*JITTER)  # add jitter
-        rango=initisample:(initisample+strokelen-1)
         
+        rango=initisample:(initisample+strokelen-1)
         if (motor=='crossplane' & ((i+2)%%4==0 | (i+1)%%4==0)) {
             rango=rango+time2sample(Tstroke/2)  # delay stroke by Tstroke/2
         }
-        
         engine[rango]=engine[rango]+stroke
         initisample=initisample+time2sample(Tstroke)
         
         # Modulate rpm
         if (i<=4*N/5) {
-            Tstroke=Tstroke/ACCEL  # speed up
+            Tstroke=Tstroke/ACCEL  # slow speed up
         } else {
-            Tstroke=Tstroke*ACCEL^15  # quickly slow up
+            Tstroke=Tstroke*ACCEL^15  # quick slow down
         }
     }
     print(paste0("Min/Max values: ", min(engine), "/", max(engine)))
