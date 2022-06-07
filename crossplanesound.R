@@ -112,7 +112,7 @@ for (motor in c('flatplane', 'crossplane')) {
 
 # MAKE VIDEO
 
-# SAVE .WAV
+# SAVE FINAL 16s .WAV
 sound=readWave("engine_flatplane_1000.wav")
 fs=as.numeric(sound@samp.rate)
 length(sound@left)/fs  # duration
