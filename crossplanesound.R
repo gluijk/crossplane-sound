@@ -130,5 +130,9 @@ writeWave(sound, filename=paste0("flatplane_crossplane_1000_real_16s.wav"))
 
 # ffmpeg
 ffmpeg -loop 1 -framerate 1 -i ciguenal%3d.png
--i flatplane_crossplane_2000rpm_28s.wav
--t 28 -c:v libx264 -crf 15 -pix_fmt yuv420p flatplanecrossplane.mp4
+    -i flatplane_crossplane_1000_16s.wav -t 16
+    -c:v libx264 -crf 15 -pix_fmt yuv420p flatplanecrossplane.mp4
+
+ffmpeg -loop 1 -framerate 1 -i ciguenal%3d.png
+    -i flatplane_crossplane_1000_real_16s.wav -t 16
+    -c:v libx264 -crf 15 -pix_fmt yuv420p flatplanecrossplanereal.mp4
