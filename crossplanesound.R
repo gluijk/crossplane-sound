@@ -54,7 +54,7 @@ for (motor in c('flatplane', 'crossplane')) {
         
         rango=initisample:(initisample+strokelen-1)
         if (motor=='crossplane' & ((i+2)%%4==0 | (i+1)%%4==0)) {
-            # crossplane delays 2nd and 3rd strokes by Tstroke/2
+            # Crossplane delays 2nd and 3rd strokes by Tstroke/2
             rango=rango+time2sample(Tstroke/2)
         }
         engine[rango]=engine[rango]+stroke
