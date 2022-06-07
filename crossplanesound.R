@@ -1,4 +1,4 @@
-# Flatplans vs Crossplane engine sound simulation
+# Flatplane vs Crossplane engine sound simulation
 # www.overfitting.net
 # https://www.overfitting.net/2022/06/simulacion-acustica-de-motores.html
 
