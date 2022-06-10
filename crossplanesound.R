@@ -8,8 +8,8 @@ library(tuneR)
 # AUX FUNCTIONS
 
 # Conversions time <-> samples. t=0 <-> n=1
-time2sample=function(t, fs=24000) {(round(t*fs+1))}
-sample2time=function(n, fs=24000) {((n-1)/fs)}
+time2sample=function(t, fs=24000) {round(t*fs+1)}
+sample2time=function(n, fs=24000) {(n-1)/fs}
 
 # Stroke pulse model
 explode=function(t, A=1, t0=0, tmax=0.01, f=100, phi=0)
@@ -51,17 +51,17 @@ for (motor in c('flatplane', 'crossplane')) {
     Tstroke=1/expps  # reset to starting Tstroke
     engine=seq(0, 0, length.out=time2sample(time)) 
     
-    initisample=1
+    initsample=1
     for (i in 1:N) {
         stroke=explode(t, f=f+rnorm(1)*JITTER)  # add jitter
         
-        rango=initisample:(initisample+strokelen-1)
+        rango=initsample:(initsample+strokelen-1)
         if (motor=='crossplane' & ((i+2)%%4==0 | (i+1)%%4==0)) {
             # Crossplane delays 2nd and 3rd strokes by Tstroke/2
             rango=rango+time2sample(Tstroke/2)
         }
         engine[rango]=engine[rango]+stroke  # add stroke to waveform
-        initisample=initisample+time2sample(Tstroke)  # shift to next stroke
+        initsample=initsample+time2sample(Tstroke)  # shift to next stroke
         
         # Modulate rpm
         if (i<=4*N/5) {
